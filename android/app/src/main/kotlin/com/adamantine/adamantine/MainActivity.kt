@@ -1,0 +1,5 @@
+package com.adamantine.adamantine
+
+import io.flutter.embedding.android.FlutterActivity
+
+class MainActivity : FlutterActivity()
