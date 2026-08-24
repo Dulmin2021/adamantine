@@ -77,12 +77,13 @@ class _EarthViewState extends State<EarthView> with SingleTickerProviderStateMix
       final z2 = y * sin(earth.pitch) + z1 * cos(earth.pitch);
 
       // Depth test: ignore back hemisphere
-      if (z2 <= 0) continue;
+      final anchorPos = Offset(center.dx + x1, center.dy + y2);
+      final pinCenter = Offset(anchorPos.dx, anchorPos.dy - 28.0);
+      final distAnchor = (anchorPos - localPos).distance;
+      final distCard = (pinCenter - localPos).distance;
+      final dist = min(distAnchor, distCard);
 
-      final screenPos = Offset(center.dx + x1, center.dy + y2);
-      final dist = (screenPos - localPos).distance;
-
-      if (dist <= 26.0 && dist < minDistance) {
+      if (dist <= 30.0 && dist < minDistance) {
         minDistance = dist;
         hitCluster = cluster;
       }
@@ -130,13 +131,16 @@ class _EarthViewState extends State<EarthView> with SingleTickerProviderStateMix
                   color: AppColors.background,
                   width: double.infinity,
                   height: double.infinity,
-                  child: CustomPaint(
-                    painter: GlobePainter(
-                      yaw: earth.yaw,
-                      pitch: earth.pitch,
-                      zoom: earth.zoom,
-                      clusters: earth.clusters,
-                      selectedClusterId: earth.selectedCluster?.id,
+                  child: RepaintBoundary(
+                    child: CustomPaint(
+                      painter: GlobePainter(
+                        yaw: earth.yaw,
+                        pitch: earth.pitch,
+                        zoom: earth.zoom,
+                        clusters: earth.clusters,
+                        selectedClusterId: earth.selectedCluster?.id,
+                        clusterThumbnails: earth.clusterThumbnails,
+                      ),
                     ),
                   ),
                 ),

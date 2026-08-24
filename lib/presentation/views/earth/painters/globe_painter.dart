@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import '../../../../core/models/location_cluster.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -9,9 +10,10 @@ class GlobePainter extends CustomPainter {
   final double zoom;    // Scale multiplier
   final List<LocationCluster> clusters;
   final String? selectedClusterId;
+  final Map<String, ui.Image>? clusterThumbnails;
 
   // Pre-calculated starfield points
-  static final List<Offset> _stars = List.generate(80, (i) {
+  static final List<Offset> _stars = List.generate(100, (i) {
     final random = Random(i * 997);
     return Offset(random.nextDouble(), random.nextDouble());
   });
@@ -22,6 +24,7 @@ class GlobePainter extends CustomPainter {
     required this.zoom,
     required this.clusters,
     this.selectedClusterId,
+    this.clusterThumbnails,
   });
 
   @override
@@ -36,41 +39,41 @@ class GlobePainter extends CustomPainter {
     final atmospherePaint = Paint()
       ..shader = RadialGradient(
         colors: [
-          AppColors.primary.withValues(alpha: 0.35),
-          AppColors.primary.withValues(alpha: 0.1),
+          AppColors.primary.withValues(alpha: 0.4),
+          AppColors.primaryDark.withValues(alpha: 0.15),
           Colors.transparent,
         ],
-        stops: const [0.75, 0.9, 1.0],
+        stops: const [0.75, 0.92, 1.0],
       ).createShader(Rect.fromCircle(center: center, radius: globeRadius * 1.35));
     canvas.drawCircle(center, globeRadius * 1.35, atmospherePaint);
 
-    // 3. Draw Globe Sphere Body (Dark oceans with subtle gradient)
+    // 3. Draw Globe Sphere Body (Deep oceanic sphere with realistic radial shading)
     final sphereBodyPaint = Paint()
       ..shader = RadialGradient(
-        center: const Alignment(-0.3, -0.3),
+        center: const Alignment(-0.35, -0.35),
         colors: [
-          const Color(0xFF1E1E28),
-          const Color(0xFF13131A),
-          const Color(0xFF09090C),
+          const Color(0xFF19222E),
+          const Color(0xFF10161F),
+          const Color(0xFF090D12),
         ],
-        stops: const [0.0, 0.6, 1.0],
+        stops: const [0.0, 0.65, 1.0],
       ).createShader(Rect.fromCircle(center: center, radius: globeRadius));
     canvas.drawCircle(center, globeRadius, sphereBodyPaint);
 
     // 4. Draw Spherical Grid Lines (Parallels & Meridians)
     _drawGridLines(canvas, center, globeRadius);
 
-    // 5. Draw Continents / Landmass representations
-    _drawStylizedLandmasses(canvas, center, globeRadius);
+    // 5. Draw Realistic Continent Landmasses
+    _drawRealisticContinents(canvas, center, globeRadius);
 
     // 6. Draw Globe Limb / Border Ring
     final limbPaint = Paint()
-      ..color = AppColors.primaryLight.withValues(alpha: 0.45)
+      ..color = AppColors.primary.withValues(alpha: 0.5)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.8;
     canvas.drawCircle(center, globeRadius, limbPaint);
 
-    // 7. Project Geotagged Clusters & Pins (with 3D Depth Testing)
+    // 7. Project Floating Geotagged Photo Thumbnail Pins
     _drawClusters(canvas, center, globeRadius);
   }
 
@@ -78,7 +81,7 @@ class GlobePainter extends CustomPainter {
     final starPaint = Paint()..color = Colors.white.withValues(alpha: 0.4);
     for (int i = 0; i < _stars.length; i++) {
       final s = _stars[i];
-      final alpha = 0.2 + 0.5 * (sin(i + yaw) * 0.5 + 0.5);
+      final alpha = 0.15 + 0.45 * (sin(i * 3.0 + yaw) * 0.5 + 0.5);
       starPaint.color = Colors.white.withValues(alpha: alpha);
       final radius = (i % 3 == 0) ? 1.5 : 1.0;
       canvas.drawCircle(Offset(s.dx * size.width, s.dy * size.height), radius, starPaint);
@@ -87,7 +90,7 @@ class GlobePainter extends CustomPainter {
 
   void _drawGridLines(Canvas canvas, Offset center, double radius) {
     final gridPaint = Paint()
-      ..color = AppColors.glassBorder.withValues(alpha: 0.22)
+      ..color = Colors.white.withValues(alpha: 0.08)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 0.8;
 
@@ -96,7 +99,7 @@ class GlobePainter extends CustomPainter {
       final path = Path();
       bool first = true;
 
-      for (int lonDeg = -180; lonDeg <= 180; lonDeg += 10) {
+      for (int lonDeg = -180; lonDeg <= 180; lonDeg += 8) {
         final pt3d = _project3D(latDeg.toDouble(), lonDeg.toDouble(), radius);
         if (pt3d.z > 0) {
           final pt2d = Offset(center.dx + pt3d.x, center.dy + pt3d.y);
@@ -136,36 +139,65 @@ class GlobePainter extends CustomPainter {
     }
   }
 
-  void _drawStylizedLandmasses(Canvas canvas, Offset center, double radius) {
-    final landPaint = Paint()
-      ..color = AppColors.primary.withValues(alpha: 0.12)
+  void _drawRealisticContinents(Canvas canvas, Offset center, double radius) {
+    final landFillPaint = Paint()
+      ..color = const Color(0xFF142E20)
       ..style = PaintingStyle.fill;
 
-    // Stylized continent sample nodes
-    final landCenters = [
-      {'lat': 45.0, 'lon': 15.0, 'rad': 25.0},   // Europe
-      {'lat': 35.0, 'lon': 100.0, 'rad': 35.0},  // Asia
-      {'lat': 0.0, 'lon': 20.0, 'rad': 30.0},    // Africa
-      {'lat': 40.0, 'lon': -100.0, 'rad': 30.0}, // North America
-      {'lat': -15.0, 'lon': -60.0, 'rad': 28.0}, // South America
-      {'lat': -25.0, 'lon': 135.0, 'rad': 22.0}, // Australia
-      {'lat': 7.0, 'lon': 81.0, 'rad': 8.0},     // Sri Lanka
-      {'lat': 36.0, 'lon': 138.0, 'rad': 12.0},  // Japan
+    final shorelinePaint = Paint()
+      ..color = AppColors.primary.withValues(alpha: 0.45)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.0;
+
+    // Detailed world continent and regional polygon outlines [lat, lon]
+    const List<List<List<double>>> continents = [
+      // Africa
+      [[37.0, 10.0], [32.0, 32.0], [12.0, 44.0], [0.0, 42.0], [-10.0, 40.0], [-25.0, 33.0], [-34.0, 26.0], [-34.0, 18.0], [-20.0, 12.0], [-5.0, 10.0], [5.0, 0.0], [5.0, -10.0], [15.0, -17.0], [28.0, -13.0], [35.0, -5.0], [37.0, 10.0]],
+      // Europe
+      [[71.0, 28.0], [68.0, 40.0], [60.0, 50.0], [45.0, 40.0], [40.0, 28.0], [36.0, 22.0], [36.0, -5.0], [43.0, -9.0], [48.0, -4.0], [54.0, 8.0], [60.0, 5.0], [65.0, 12.0], [71.0, 28.0]],
+      // Asia & Middle East
+      [[75.0, 100.0], [72.0, 140.0], [65.0, 175.0], [58.0, 160.0], [42.0, 132.0], [35.0, 120.0], [22.0, 114.0], [8.0, 104.0], [1.0, 104.0], [15.0, 95.0], [22.0, 88.0], [8.0, 77.0], [24.0, 68.0], [25.0, 56.0], [12.0, 44.0], [28.0, 34.0], [38.0, 36.0], [42.0, 50.0], [55.0, 60.0], [75.0, 100.0]],
+      // North America
+      [[72.0, -155.0], [70.0, -125.0], [60.0, -85.0], [50.0, -55.0], [44.0, -64.0], [30.0, -80.0], [25.0, -80.0], [18.0, -88.0], [8.0, -80.0], [15.0, -95.0], [22.0, -105.0], [32.0, -117.0], [48.0, -125.0], [60.0, -145.0], [65.0, -168.0], [72.0, -155.0]],
+      // South America
+      [[12.0, -72.0], [6.0, -52.0], [-5.0, -35.0], [-22.0, -40.0], [-35.0, -55.0], [-54.0, -68.0], [-45.0, -75.0], [-18.0, -70.0], [-5.0, -80.0], [10.0, -75.0], [12.0, -72.0]],
+      // Australia
+      [[-12.0, 132.0], [-15.0, 145.0], [-25.0, 153.0], [-38.0, 148.0], [-38.0, 140.0], [-32.0, 115.0], [-22.0, 114.0], [-15.0, 125.0], [-12.0, 132.0]],
+      // Greenland
+      [[82.0, -30.0], [75.0, -20.0], [60.0, -45.0], [70.0, -55.0], [80.0, -60.0], [82.0, -30.0]],
+      // British Isles
+      [[58.0, -5.0], [52.0, 1.5], [50.0, -5.0], [55.0, -8.0], [58.0, -5.0]],
+      // Japan
+      [[44.0, 144.0], [38.0, 141.0], [33.0, 132.0], [36.0, 136.0], [43.0, 142.0], [44.0, 144.0]],
+      // Sri Lanka
+      [[9.8, 80.2], [6.0, 80.5], [6.0, 81.5], [9.0, 81.5], [9.8, 80.2]],
+      // Madagascar
+      [[-12.0, 49.0], [-25.0, 47.0], [-25.0, 44.0], [-15.0, 46.0], [-12.0, 49.0]],
     ];
 
-    for (final land in landCenters) {
-      final lat = land['lat'] as double;
-      final lon = land['lon'] as double;
-      final landR = land['rad'] as double;
+    for (final poly in continents) {
+      final path = Path();
+      bool first = true;
+      bool visible = false;
 
-      final pt3d = _project3D(lat, lon, radius);
-      if (pt3d.z > 0) {
-        final projectedRadius = (landR / 90.0) * radius * (pt3d.z / radius);
-        canvas.drawCircle(
-          Offset(center.dx + pt3d.x, center.dy + pt3d.y),
-          max(4.0, projectedRadius),
-          landPaint,
-        );
+      for (final pt in poly) {
+        final pt3d = _project3D(pt[0], pt[1], radius);
+        if (pt3d.z > -radius * 0.15) {
+          visible = true;
+          final pt2d = Offset(center.dx + pt3d.x, center.dy + pt3d.y);
+          if (first) {
+            path.moveTo(pt2d.dx, pt2d.dy);
+            first = false;
+          } else {
+            path.lineTo(pt2d.dx, pt2d.dy);
+          }
+        }
+      }
+
+      if (visible && !first) {
+        path.close();
+        canvas.drawPath(path, landFillPaint);
+        canvas.drawPath(path, shorelinePaint);
       }
     }
   }
@@ -177,36 +209,92 @@ class GlobePainter extends CustomPainter {
       // Depth test: cull pins on the back hemisphere (z <= 0)
       if (pt3d.z <= 0) continue;
 
-      final screenPos = Offset(center.dx + pt3d.x, center.dy + pt3d.y);
+      final anchorPos = Offset(center.dx + pt3d.x, center.dy + pt3d.y);
       final isSelected = selectedClusterId == cluster.id;
-      final isMultiple = cluster.count > 1;
+      final thumbnailImage = clusterThumbnails?[cluster.id];
 
-      // Glow halo
-      final glowPaint = Paint()
-        ..color = (isSelected ? AppColors.earthPin : AppColors.earthCluster).withValues(alpha: 0.35)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8);
-      canvas.drawCircle(screenPos, isMultiple ? 18.0 : 12.0, glowPaint);
+      const double cardSize = 38.0;
+      final pinCenter = Offset(anchorPos.dx, anchorPos.dy - 28.0);
 
-      if (isMultiple) {
-        // Numbered Cluster Badge (e.g. "24")
+      // 1. Globe Anchor Dot on Surface
+      final anchorPaint = Paint()
+        ..color = isSelected ? AppColors.earthPin : AppColors.primary
+        ..style = PaintingStyle.fill;
+      canvas.drawCircle(anchorPos, 4.0, anchorPaint);
+
+      final anchorRing = Paint()
+        ..color = Colors.white
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.5;
+      canvas.drawCircle(anchorPos, 4.0, anchorRing);
+
+      // 2. Vertical Pin Stalk Line
+      final stalkPaint = Paint()
+        ..color = Colors.white.withValues(alpha: 0.8)
+        ..strokeWidth = 1.5;
+      canvas.drawLine(anchorPos, Offset(pinCenter.dx, pinCenter.dy + cardSize / 2), stalkPaint);
+
+      // 3. Drop Shadow for Floating Photo Card
+      final cardRect = Rect.fromCenter(center: pinCenter, width: cardSize, height: cardSize);
+      final rrect = RRect.fromRectAndRadius(cardRect, const Radius.circular(8));
+
+      final shadowPaint = Paint()
+        ..color = Colors.black.withValues(alpha: 0.5)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6);
+      canvas.drawRRect(rrect.shift(const Offset(0, 3)), shadowPaint);
+
+      // 4. Render Photo Thumbnail Card
+      if (thumbnailImage != null) {
+        canvas.save();
+        canvas.clipRRect(rrect);
+        canvas.drawImageRect(
+          thumbnailImage,
+          Rect.fromLTWH(0, 0, thumbnailImage.width.toDouble(), thumbnailImage.height.toDouble()),
+          cardRect,
+          Paint()..filterQuality = FilterQuality.medium,
+        );
+        canvas.restore();
+      } else {
+        // Fallback charcoal container with photo icon placeholder
+        final bgPaint = Paint()
+          ..color = AppColors.surfaceContainerHigh
+          ..style = PaintingStyle.fill;
+        canvas.drawRRect(rrect, bgPaint);
+
+        canvas.drawCircle(
+          pinCenter,
+          8.0,
+          Paint()..color = AppColors.primaryDark.withValues(alpha: 0.5),
+        );
+      }
+
+      // 5. Card Border Ring
+      final borderPaint = Paint()
+        ..color = isSelected ? AppColors.earthPin : Colors.white
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2.0;
+      canvas.drawRRect(rrect, borderPaint);
+
+      // 6. Photo Count Badge Pill (top right)
+      if (cluster.count > 1) {
+        final badgeOffset = Offset(pinCenter.dx + cardSize / 2 - 2, pinCenter.dy - cardSize / 2 + 2);
         final badgePaint = Paint()
           ..color = isSelected ? AppColors.earthPin : AppColors.primary
           ..style = PaintingStyle.fill;
-        canvas.drawCircle(screenPos, 14.0, badgePaint);
+        canvas.drawCircle(badgeOffset, 9.0, badgePaint);
 
-        final strokePaint = Paint()
+        final badgeBorder = Paint()
           ..color = Colors.white
           ..style = PaintingStyle.stroke
-          ..strokeWidth = 2.0;
-        canvas.drawCircle(screenPos, 14.0, strokePaint);
+          ..strokeWidth = 1.5;
+        canvas.drawCircle(badgeOffset, 9.0, badgeBorder);
 
-        // Count Text
         final textPainter = TextPainter(
           text: TextSpan(
             text: '${cluster.count}',
             style: const TextStyle(
-              color: Colors.white,
-              fontSize: 11,
+              color: Colors.black,
+              fontSize: 9,
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -215,20 +303,8 @@ class GlobePainter extends CustomPainter {
         textPainter.layout();
         textPainter.paint(
           canvas,
-          Offset(screenPos.dx - textPainter.width / 2, screenPos.dy - textPainter.height / 2),
+          Offset(badgeOffset.dx - textPainter.width / 2, badgeOffset.dy - textPainter.height / 2),
         );
-      } else {
-        // Single Pin Marker
-        final pinPaint = Paint()
-          ..color = isSelected ? AppColors.earthPin : AppColors.primaryLight
-          ..style = PaintingStyle.fill;
-        canvas.drawCircle(screenPos, 8.0, pinPaint);
-
-        final pinBorder = Paint()
-          ..color = Colors.white
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 2.0;
-        canvas.drawCircle(screenPos, 8.0, pinBorder);
       }
     }
   }
@@ -264,3 +340,4 @@ class _Point3D {
   final double z;
   const _Point3D(this.x, this.y, this.z);
 }
+

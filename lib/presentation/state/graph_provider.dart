@@ -4,6 +4,7 @@ import '../../core/models/graph_node.dart';
 import '../../core/models/media_item.dart';
 import '../../core/models/album.dart';
 import '../../core/services/graph_service.dart';
+import '../../core/services/canvas_image_loader.dart';
 
 class GraphProvider with ChangeNotifier {
   final GraphService _graphService = GraphService();
@@ -63,7 +64,22 @@ class GraphProvider with ChangeNotifier {
       previousNodeMap: resetPositions ? null : _graphData?.nodeMap,
     );
     _alpha = 1.0;
+    _loadNodeThumbnails();
     notifyListeners();
+  }
+
+  void _loadNodeThumbnails() {
+    if (_graphData == null) return;
+    for (final node in _graphData!.nodes) {
+      if (node.mediaItem != null && node.image == null) {
+        CanvasImageLoader.loadThumbnail(node.mediaItem!).then((img) {
+          if (img != null) {
+            node.image = img;
+            notifyListeners();
+          }
+        });
+      }
+    }
   }
 
   void toggleFilter(GraphFilter filter, {required List<MediaItem> allItems, required List<Album> allAlbums}) {
@@ -205,6 +221,12 @@ class GraphProvider with ChangeNotifier {
     // 4. Update velocity and position with smooth Verlet/Euler integration
     const double damping = 0.88;
     for (final node in nodes) {
+      if (node.isPinned) {
+        node.vx = 0;
+        node.vy = 0;
+        continue;
+      }
+
       node.vx = (node.vx + (node.fx / node.mass) * dt) * damping;
       node.vy = (node.vy + (node.fy / node.mass) * dt) * damping;
 

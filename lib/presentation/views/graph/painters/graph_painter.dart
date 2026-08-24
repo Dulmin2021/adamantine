@@ -82,45 +82,82 @@ class GraphPainter extends CustomPainter {
       if (node.category == NodeCategory.hub) {
         // Outer Emerald Neon Glow (Stitch box-shadow: 0 0 24px rgba(0, 92, 51, 0.8))
         final outerGlow = Paint()
-          ..color = AppColors.primaryGlow.withValues(alpha: 0.7 * nodeOpacity)
-          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 18);
-        canvas.drawCircle(pos, node.radius + 8, outerGlow);
+          ..color = AppColors.primaryGlow.withValues(alpha: 0.75 * nodeOpacity)
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 16);
+        canvas.drawCircle(pos, node.radius + 6, outerGlow);
 
-        // Dark obsidian surface fill
+        // Dark obsidian background base
         final baseFill = Paint()
           ..color = AppColors.background.withValues(alpha: nodeOpacity)
           ..style = PaintingStyle.fill;
         canvas.drawCircle(pos, node.radius, baseFill);
 
-        // Inner emerald tint fill
-        final innerGlow = Paint()
-          ..color = AppColors.primaryDark.withValues(alpha: 0.35 * nodeOpacity)
-          ..style = PaintingStyle.fill;
-        canvas.drawCircle(pos, node.radius * 0.85, innerGlow);
+        // Render circular clipped Album Cover Image if available
+        if (node.image != null) {
+          canvas.save();
+          canvas.clipPath(Path()..addOval(Rect.fromCircle(center: pos, radius: node.radius - 1.0)));
+          canvas.drawImageRect(
+            node.image!,
+            Rect.fromLTWH(0, 0, node.image!.width.toDouble(), node.image!.height.toDouble()),
+            Rect.fromCircle(center: pos, radius: node.radius),
+            Paint()..filterQuality = FilterQuality.medium,
+          );
+          // Dark gradient overlay for text contrast
+          canvas.drawCircle(
+            pos,
+            node.radius,
+            Paint()..color = Colors.black.withValues(alpha: 0.25),
+          );
+          canvas.restore();
+        } else {
+          // Inner emerald tint fill fallback
+          final innerGlow = Paint()
+            ..color = AppColors.primaryDark.withValues(alpha: 0.4 * nodeOpacity)
+            ..style = PaintingStyle.fill;
+          canvas.drawCircle(pos, node.radius * 0.85, innerGlow);
+        }
 
-        // 2px solid emerald ring border
+        // 2.5px solid emerald ring border
         final strokePaint = Paint()
           ..color = AppColors.primary.withValues(alpha: 0.95 * nodeOpacity)
           ..style = PaintingStyle.stroke
-          ..strokeWidth = 2.2;
+          ..strokeWidth = 2.5;
         canvas.drawCircle(pos, node.radius, strokePaint);
       } else {
-        // Satellite Node (Stitch .node-satellite with 1px emerald border)
-        final satGlow = Paint()
-          ..color = AppColors.primaryDark.withValues(alpha: 0.3 * nodeOpacity)
-          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6);
-        canvas.drawCircle(pos, node.radius + 2, satGlow);
+        // Satellite Photo Node (Clipped photo thumbnail or emerald marker)
+        if (node.image != null) {
+          canvas.save();
+          canvas.clipPath(Path()..addOval(Rect.fromCircle(center: pos, radius: node.radius)));
+          canvas.drawImageRect(
+            node.image!,
+            Rect.fromLTWH(0, 0, node.image!.width.toDouble(), node.image!.height.toDouble()),
+            Rect.fromCircle(center: pos, radius: node.radius),
+            Paint()..filterQuality = FilterQuality.low,
+          );
+          canvas.restore();
 
-        final satFill = Paint()
-          ..color = (isExpanded ? AppColors.primaryContainer : AppColors.surfaceContainerHigh).withValues(alpha: nodeOpacity)
-          ..style = PaintingStyle.fill;
-        canvas.drawCircle(pos, node.radius, satFill);
+          final satStroke = Paint()
+            ..color = (isExpanded ? AppColors.primary : AppColors.primary.withValues(alpha: 0.7)).withValues(alpha: 0.9 * nodeOpacity)
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 1.5;
+          canvas.drawCircle(pos, node.radius, satStroke);
+        } else {
+          final satGlow = Paint()
+            ..color = AppColors.primaryDark.withValues(alpha: 0.3 * nodeOpacity)
+            ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6);
+          canvas.drawCircle(pos, node.radius + 2, satGlow);
 
-        final satStroke = Paint()
-          ..color = (isExpanded ? AppColors.primary : AppColors.primary.withValues(alpha: 0.6)).withValues(alpha: 0.8 * nodeOpacity)
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 1.2;
-        canvas.drawCircle(pos, node.radius, satStroke);
+          final satFill = Paint()
+            ..color = (isExpanded ? AppColors.primaryContainer : AppColors.surfaceContainerHigh).withValues(alpha: nodeOpacity)
+            ..style = PaintingStyle.fill;
+          canvas.drawCircle(pos, node.radius, satFill);
+
+          final satStroke = Paint()
+            ..color = (isExpanded ? AppColors.primary : AppColors.primary.withValues(alpha: 0.6)).withValues(alpha: 0.8 * nodeOpacity)
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 1.2;
+          canvas.drawCircle(pos, node.radius, satStroke);
+        }
       }
 
       // Node Text Labels

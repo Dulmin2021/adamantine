@@ -1,9 +1,11 @@
 import 'dart:math';
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import '../../core/models/media_item.dart';
 import '../../core/models/location_cluster.dart';
 import '../../core/models/trip.dart';
 import '../../core/services/geo_service.dart';
+import '../../core/services/canvas_image_loader.dart';
 
 class EarthProvider with ChangeNotifier {
   final GeoService _geoService = GeoService();
@@ -27,6 +29,7 @@ class EarthProvider with ChangeNotifier {
   List<Trip> _trips = [];
   LocationCluster? _selectedCluster;
   Trip? _selectedTrip;
+  final Map<String, ui.Image> _clusterThumbnails = {};
 
   // Search & Navigation
   String _searchQuery = '';
@@ -42,10 +45,23 @@ class EarthProvider with ChangeNotifier {
   LocationCluster? get selectedCluster => _selectedCluster;
   Trip? get selectedTrip => _selectedTrip;
   String get searchQuery => _searchQuery;
+  Map<String, ui.Image> get clusterThumbnails => _clusterThumbnails;
 
   void refreshGeoData(List<MediaItem> allItems) {
     _clusters = _geoService.clusterPhotos(allItems, clusterRadiusKm: 60.0 / _zoom);
     _trips = _geoService.detectTrips(allItems);
+
+    // Pre-decode cluster thumbnail images for realistic globe photo pins
+    for (final cluster in _clusters) {
+      if (cluster.coverPhoto != null && !_clusterThumbnails.containsKey(cluster.id)) {
+        CanvasImageLoader.loadThumbnail(cluster.coverPhoto!, targetSize: 120).then((img) {
+          if (img != null) {
+            _clusterThumbnails[cluster.id] = img;
+            notifyListeners();
+          }
+        });
+      }
+    }
     notifyListeners();
   }
 

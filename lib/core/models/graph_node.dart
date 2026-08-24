@@ -1,4 +1,4 @@
-import 'dart:ui';
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'media_item.dart';
 
@@ -63,6 +63,8 @@ class GraphNode {
   bool isExpanded;
   bool isFocused;
   bool isDimmed;
+  bool isPinned;
+  ui.Image? image; // Decoded thumbnail for canvas rendering
 
   GraphNode({
     required this.id,
@@ -79,11 +81,13 @@ class GraphNode {
     this.fy = 0,
     this.radius = 16.0,
     this.mass = 1.0,
-    this.color = const Color(0xFF8B5CF6),
+    this.color = const Color(0xFF8AD7A3),
     this.opacity = 1.0,
     this.isExpanded = false,
     this.isFocused = false,
     this.isDimmed = false,
+    this.isPinned = false,
+    this.image,
   });
 
   Offset get offset => Offset(x, y);

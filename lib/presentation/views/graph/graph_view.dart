@@ -53,17 +53,16 @@ class _GraphViewState extends State<GraphView> with SingleTickerProviderStateMix
     super.dispose();
   }
 
-  void _handleTapUp(TapUpDetails details, BuildContext context, GraphProvider graph, GalleryProvider gallery, Size size) {
-    // Transform tap coordinates to graph canvas space
-    final localPos = details.localPosition;
+  GraphNode? _draggedNode;
+
+  GraphNode? _findNodeAt(Offset localPos, Size size, GraphProvider graph) {
     final centerX = size.width / 2 + graph.panOffset.dx;
     final centerY = size.height / 2 + graph.panOffset.dy;
 
     final graphX = (localPos.dx - centerX) / graph.scale;
     final graphY = (localPos.dy - centerY) / graph.scale;
 
-    // Find tapped node
-    GraphNode? tappedNode;
+    GraphNode? nearest;
     double minDistance = double.infinity;
 
     for (final node in graph.nodes) {
@@ -71,11 +70,19 @@ class _GraphViewState extends State<GraphView> with SingleTickerProviderStateMix
       final dy = node.y - graphY;
       final dist = sqrt(dx * dx + dy * dy);
 
-      if (dist <= node.radius * 1.5 && dist < minDistance) {
+      if (dist <= node.radius * 1.8 && dist < minDistance) {
         minDistance = dist;
-        tappedNode = node;
+        nearest = node;
       }
     }
+    return nearest;
+  }
+
+  void _handleTapUp(TapUpDetails details, BuildContext context, GraphProvider graph, GalleryProvider gallery, Size size) {
+    // If we just finished dragging a node, don't trigger tap
+    if (_draggedNode != null) return;
+
+    final tappedNode = _findNodeAt(details.localPosition, size, graph);
 
     if (tappedNode != null) {
       graph.onNodeTapped(tappedNode, allItems: gallery.allItems, allAlbums: gallery.albums);
@@ -132,7 +139,7 @@ class _GraphViewState extends State<GraphView> with SingleTickerProviderStateMix
 
         return Stack(
           children: [
-            // Graph Canvas with Gestures
+            // Graph Canvas with Gestures (Obsidian Node Dragging + Canvas Pan/Zoom)
             GestureDetector(
               onTapUp: (details) => _handleTapUp(details, context, graph, gallery, size),
               onDoubleTap: () {
@@ -140,17 +147,42 @@ class _GraphViewState extends State<GraphView> with SingleTickerProviderStateMix
                   graph.panOffset = Offset.zero;
                   graph.scale = 1.0;
                 });
-                graph.wakeSimulation(0.5);
-              },
-              onScaleStart: (_) {
                 graph.wakeSimulation(0.6);
               },
+              onScaleStart: (details) {
+                final hitNode = _findNodeAt(details.localFocalPoint, size, graph);
+                if (hitNode != null) {
+                  _draggedNode = hitNode;
+                  _draggedNode!.isPinned = true;
+                  graph.wakeSimulation(1.0);
+                } else {
+                  _draggedNode = null;
+                  graph.wakeSimulation(0.6);
+                }
+              },
               onScaleUpdate: (details) {
-                setState(() {
-                  graph.scale = (graph.scale * details.scale).clamp(0.4, 2.5);
-                  graph.panOffset += details.focalPointDelta;
-                });
-                graph.wakeSimulation(0.3);
+                if (_draggedNode != null) {
+                  setState(() {
+                    _draggedNode!.x += details.focalPointDelta.dx / graph.scale;
+                    _draggedNode!.y += details.focalPointDelta.dy / graph.scale;
+                    _draggedNode!.vx = (details.focalPointDelta.dx / graph.scale) * 20.0;
+                    _draggedNode!.vy = (details.focalPointDelta.dy / graph.scale) * 20.0;
+                  });
+                  graph.wakeSimulation(1.0);
+                } else {
+                  setState(() {
+                    graph.scale = (graph.scale * details.scale).clamp(0.4, 2.5);
+                    graph.panOffset += details.focalPointDelta;
+                  });
+                  graph.wakeSimulation(0.4);
+                }
+              },
+              onScaleEnd: (details) {
+                if (_draggedNode != null) {
+                  _draggedNode!.isPinned = false;
+                  _draggedNode = null;
+                  graph.wakeSimulation(1.0);
+                }
               },
               child: Container(
                 color: AppColors.background,

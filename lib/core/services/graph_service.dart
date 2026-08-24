@@ -53,13 +53,16 @@ class GraphService {
       final initialX = prevHub?.x ?? (cos(angle) * dist);
       final initialY = prevHub?.y ?? (sin(angle) * dist);
 
+      final hubMediaItem = album.coverItem ?? (albumPhotos.isNotEmpty ? albumPhotos.first : null);
+
       final hubNode = GraphNode(
         id: 'hub_${album.id}',
         label: album.name,
         category: NodeCategory.hub,
         albumId: album.id,
+        mediaItem: hubMediaItem,
         photoCount: albumPhotos.length,
-        radius: 24.0 + min(16.0, albumPhotos.length * 1.5),
+        radius: 28.0 + min(16.0, albumPhotos.length * 1.5),
         mass: 3.0 + min(3.0, albumPhotos.length * 0.2),
         color: AppColors.primary,
         x: initialX,
@@ -67,6 +70,7 @@ class GraphService {
         vx: prevHub?.vx ?? 0.0,
         vy: prevHub?.vy ?? 0.0,
         isExpanded: isExpanded,
+        image: prevHub?.image,
       );
 
       nodes.add(hubNode);
@@ -106,13 +110,14 @@ class GraphService {
             albumId: album.id,
             mediaItem: photo,
             photoCount: 1,
-            radius: isExpanded ? 9.0 : 6.0,
+            radius: isExpanded ? 11.0 : 7.0,
             mass: 0.8,
             color: isExpanded ? AppColors.primaryLight : AppColors.graphLeaf,
             x: satX,
             y: satY,
             vx: satVx,
             vy: satVy,
+            image: prevLeaf?.image,
           );
 
           nodes.add(leafNode);
