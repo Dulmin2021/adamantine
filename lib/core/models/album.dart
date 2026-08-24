@@ -1,3 +1,5 @@
+import 'media_item.dart';
+
 enum AlbumType {
   camera,
   screenshots,
@@ -14,6 +16,7 @@ class Album {
   final int count;
   final String? coverPhotoPath;
   final String? coverPhotoUrl;
+  final MediaItem? coverItem;
   final DateTime? lastModified;
   final bool isSystem;
 
@@ -24,6 +27,7 @@ class Album {
     this.count = 0,
     this.coverPhotoPath,
     this.coverPhotoUrl,
+    this.coverItem,
     this.lastModified,
     this.isSystem = false,
   });
@@ -35,6 +39,7 @@ class Album {
     int? count,
     String? coverPhotoPath,
     String? coverPhotoUrl,
+    MediaItem? coverItem,
     DateTime? lastModified,
     bool? isSystem,
   }) {
@@ -45,6 +50,7 @@ class Album {
       count: count ?? this.count,
       coverPhotoPath: coverPhotoPath ?? this.coverPhotoPath,
       coverPhotoUrl: coverPhotoUrl ?? this.coverPhotoUrl,
+      coverItem: coverItem ?? this.coverItem,
       lastModified: lastModified ?? this.lastModified,
       isSystem: isSystem ?? this.isSystem,
     );

@@ -3,6 +3,7 @@ import '../../../../core/models/album.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../common/glass_container.dart';
 import '../../../common/animated_pressable.dart';
+import '../../../common/media_thumbnail.dart';
 
 class AlbumCard extends StatelessWidget {
   final Album album;
@@ -50,7 +51,12 @@ class AlbumCard extends StatelessWidget {
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
-                    if (album.coverPhotoUrl != null && album.coverPhotoUrl!.isNotEmpty)
+                    if (album.coverItem != null)
+                      MediaThumbnail(
+                        item: album.coverItem!,
+                        fit: BoxFit.cover,
+                      )
+                    else if (album.coverPhotoUrl != null && album.coverPhotoUrl!.isNotEmpty)
                       Image.network(
                         album.coverPhotoUrl!,
                         fit: BoxFit.cover,

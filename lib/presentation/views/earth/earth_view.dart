@@ -97,7 +97,16 @@ class _EarthViewState extends State<EarthView> with SingleTickerProviderStateMix
 
   @override
   Widget build(BuildContext context) {
+    final gallery = context.watch<GalleryProvider>();
     final earth = context.watch<EarthProvider>();
+
+    if (earth.clusters.isEmpty && gallery.allItems.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && earth.clusters.isEmpty) {
+          earth.refreshGeoData(gallery.allItems);
+        }
+      });
+    }
 
     return LayoutBuilder(
       builder: (context, constraints) {

@@ -1,4 +1,5 @@
 import 'dart:typed_data';
+import 'package:photo_manager/photo_manager.dart' hide AlbumType;
 
 class ExifData {
   final double? latitude;
@@ -89,6 +90,7 @@ class MediaItem {
   final ExifData exif;
   final Uint8List? thumbnailData; // In-memory cache or mock image bytes
   final String? placeholderUrl; // Sample image URL for mock display
+  final AssetEntity? assetEntity; // Native photo_manager asset for high-performance device rendering
 
   MediaItem({
     required this.id,
@@ -109,6 +111,7 @@ class MediaItem {
     this.exif = const ExifData(),
     this.thumbnailData,
     this.placeholderUrl,
+    this.assetEntity,
   });
 
   bool get hasLocation => exif.hasLocation;
@@ -138,6 +141,7 @@ class MediaItem {
     ExifData? exif,
     Uint8List? thumbnailData,
     String? placeholderUrl,
+    AssetEntity? assetEntity,
   }) {
     return MediaItem(
       id: id ?? this.id,
@@ -158,6 +162,7 @@ class MediaItem {
       exif: exif ?? this.exif,
       thumbnailData: thumbnailData ?? this.thumbnailData,
       placeholderUrl: placeholderUrl ?? this.placeholderUrl,
+      assetEntity: assetEntity ?? this.assetEntity,
     );
   }
 

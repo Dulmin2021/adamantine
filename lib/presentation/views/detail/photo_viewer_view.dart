@@ -103,6 +103,7 @@ class _PhotoViewerViewState extends State<PhotoViewerView> {
                       child: MediaThumbnail(
                         item: photo,
                         fit: BoxFit.contain,
+                        isOriginal: true,
                       ),
                     ),
                   ),

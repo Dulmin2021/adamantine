@@ -99,6 +99,33 @@ class _GraphViewState extends State<GraphView> with SingleTickerProviderStateMix
     final gallery = context.watch<GalleryProvider>();
     final graph = context.watch<GraphProvider>();
 
+    if (graph.nodes.isEmpty && gallery.allItems.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && graph.nodes.isEmpty) {
+          graph.rebuildGraph(allItems: gallery.allItems, allAlbums: gallery.albums);
+        }
+      });
+    }
+
+    if (gallery.isLoading && graph.nodes.isEmpty) {
+      return const Scaffold(
+        backgroundColor: AppColors.background,
+        body: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircularProgressIndicator(color: AppColors.primaryLight),
+              SizedBox(height: 16),
+              Text(
+                'Building Knowledge Graph...',
+                style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return LayoutBuilder(
       builder: (context, constraints) {
         final size = Size(constraints.maxWidth, constraints.maxHeight);

@@ -70,6 +70,7 @@ class MediaService {
                 tags: tags,
                 albumId: pathEntity.id,
                 albumName: pathEntity.name,
+                assetEntity: asset,
                 exif: ExifData(
                   latitude: (latLng != null && latLng.latitude != 0.0) ? latLng.latitude : null,
                   longitude: (latLng != null && latLng.longitude != 0.0) ? latLng.longitude : null,
@@ -136,14 +137,17 @@ class MediaService {
         type = AlbumType.whatsApp;
       }
 
+      final firstItem = items.isNotEmpty ? items.first : null;
+
       albums.add(Album(
         id: albumId,
         name: name,
         type: type,
         count: items.length,
-        coverPhotoPath: items.first.path,
-        coverPhotoUrl: items.first.placeholderUrl,
-        lastModified: items.first.createDate,
+        coverItem: firstItem,
+        coverPhotoPath: firstItem?.path,
+        coverPhotoUrl: firstItem?.placeholderUrl,
+        lastModified: firstItem?.createDate,
         isSystem: type != AlbumType.userCreated,
       ));
     });

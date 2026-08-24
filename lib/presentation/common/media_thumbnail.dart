@@ -1,5 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:photo_manager/photo_manager.dart' hide AlbumType;
+import 'package:photo_manager_image_provider/photo_manager_image_provider.dart';
 import '../../core/models/media_item.dart';
 import '../../core/theme/app_colors.dart';
 
@@ -9,6 +11,7 @@ class MediaThumbnail extends StatelessWidget {
   final double? width;
   final double? height;
   final BorderRadius? borderRadius;
+  final bool isOriginal;
 
   const MediaThumbnail({
     super.key,
@@ -17,13 +20,31 @@ class MediaThumbnail extends StatelessWidget {
     this.width,
     this.height,
     this.borderRadius,
+    this.isOriginal = false,
   });
 
   @override
   Widget build(BuildContext context) {
     Widget imageWidget;
 
-    if (item.path != null && File(item.path!).existsSync()) {
+    if (item.assetEntity != null) {
+      imageWidget = Image(
+        image: AssetEntityImageProvider(
+          item.assetEntity!,
+          isOriginal: isOriginal,
+          thumbnailSize: isOriginal ? null : const ThumbnailSize.square(350),
+          thumbnailFormat: ThumbnailFormat.jpeg,
+        ),
+        fit: fit,
+        width: width,
+        height: height,
+        loadingBuilder: (context, child, progress) {
+          if (progress == null) return child;
+          return _buildLoading();
+        },
+        errorBuilder: (_, _, _) => _buildPlaceholder(),
+      );
+    } else if (item.path != null && File(item.path!).existsSync()) {
       imageWidget = Image.file(
         File(item.path!),
         fit: fit,
