@@ -90,7 +90,7 @@ class _AppShellState extends State<AppShell> {
         decoration: const BoxDecoration(
           color: AppColors.glassSurface,
           border: Border(
-            top: BorderSide(color: AppColors.cardBorder, width: 0.8),
+            top: BorderSide(color: AppColors.cardBorder, width: 1.0),
           ),
         ),
         child: SafeArea(
@@ -100,26 +100,26 @@ class _AppShellState extends State<AppShell> {
               setState(() => _currentTab = idx);
             },
             backgroundColor: Colors.transparent,
-            indicatorColor: AppColors.primary.withValues(alpha: 0.25),
+            indicatorColor: AppColors.primaryContainer.withValues(alpha: 0.7),
             destinations: const [
               NavigationDestination(
                 icon: Icon(Icons.photo_library_outlined, color: AppColors.textMuted),
-                selectedIcon: Icon(Icons.photo_library_rounded, color: AppColors.primaryLight),
+                selectedIcon: Icon(Icons.photo_library_rounded, color: AppColors.primary),
                 label: 'Timeline',
               ),
               NavigationDestination(
                 icon: Icon(Icons.folder_outlined, color: AppColors.textMuted),
-                selectedIcon: Icon(Icons.folder_rounded, color: AppColors.primaryLight),
+                selectedIcon: Icon(Icons.folder_rounded, color: AppColors.primary),
                 label: 'Albums',
               ),
               NavigationDestination(
                 icon: Icon(Icons.hub_outlined, color: AppColors.textMuted),
-                selectedIcon: Icon(Icons.hub_rounded, color: AppColors.primaryLight),
+                selectedIcon: Icon(Icons.hub_rounded, color: AppColors.primary),
                 label: 'Graph',
               ),
               NavigationDestination(
                 icon: Icon(Icons.public_outlined, color: AppColors.textMuted),
-                selectedIcon: Icon(Icons.public_rounded, color: AppColors.primaryLight),
+                selectedIcon: Icon(Icons.public_rounded, color: AppColors.primary),
                 label: 'Earth',
               ),
             ],

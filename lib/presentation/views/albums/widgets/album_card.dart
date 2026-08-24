@@ -44,62 +44,101 @@ class AlbumCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Album Cover Image with stacked photo illusion
+            // Album Cover Image with Stitch 3D layered stack effect
             Expanded(
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(14),
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    if (album.coverItem != null)
-                      MediaThumbnail(
-                        item: album.coverItem!,
-                        fit: BoxFit.cover,
-                      )
-                    else if (album.coverPhotoUrl != null && album.coverPhotoUrl!.isNotEmpty)
-                      Image.network(
-                        album.coverPhotoUrl!,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, _, _) => _buildPlaceholder(),
-                      )
-                    else
-                      _buildPlaceholder(),
+              child: Stack(
+                clipBehavior: Clip.none,
+                alignment: Alignment.center,
+                children: [
+                  // Bottom layer in stack
+                  Positioned(
+                    top: 2,
+                    left: 12,
+                    right: 12,
+                    bottom: 0,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: AppColors.surfaceContainerHighest.withValues(alpha: 0.4),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: AppColors.cardBorder, width: 0.8),
+                      ),
+                    ),
+                  ),
+                  // Middle layer in stack
+                  Positioned(
+                    top: 6,
+                    left: 6,
+                    right: 6,
+                    bottom: 0,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: AppColors.surfaceContainerHigh.withValues(alpha: 0.6),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: AppColors.cardBorder, width: 0.8),
+                      ),
+                    ),
+                  ),
+                  // Top main photo card
+                  Positioned.fill(
+                    top: 10,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(16),
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          if (album.coverItem != null)
+                            MediaThumbnail(
+                              item: album.coverItem!,
+                              fit: BoxFit.cover,
+                            )
+                          else if (album.coverPhotoUrl != null && album.coverPhotoUrl!.isNotEmpty)
+                            Image.network(
+                              album.coverPhotoUrl!,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, _, _) => _buildPlaceholder(),
+                            )
+                          else
+                            _buildPlaceholder(),
 
-                    // Subtle gradient overlay for depth
-                    Positioned.fill(
-                      child: DecoratedBox(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: [
-                              Colors.transparent,
-                              Colors.black.withValues(alpha: 0.5),
-                            ],
+                          // Subtle gradient overlay for depth
+                          Positioned.fill(
+                            child: DecoratedBox(
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  begin: Alignment.topCenter,
+                                  end: Alignment.bottomCenter,
+                                  colors: [
+                                    Colors.transparent,
+                                    Colors.black.withValues(alpha: 0.6),
+                                  ],
+                                ),
+                              ),
+                            ),
                           ),
-                        ),
-                      ),
-                    ),
 
-                    // System Album Type Icon badge top right
-                    Positioned(
-                      top: 8,
-                      right: 8,
-                      child: Container(
-                        padding: const EdgeInsets.all(6),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.5),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          _getAlbumIcon(album.type),
-                          color: Colors.white70,
-                          size: 14,
-                        ),
+                          // System Album Type Icon badge top right
+                          Positioned(
+                            top: 8,
+                            right: 8,
+                            child: Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                color: Colors.black.withValues(alpha: 0.6),
+                                shape: BoxShape.circle,
+                                border: Border.all(color: AppColors.cardBorder, width: 0.8),
+                              ),
+                              child: Icon(
+                                _getAlbumIcon(album.type),
+                                color: AppColors.primary,
+                                size: 14,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 10),

@@ -24,6 +24,17 @@ class GraphPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
+    // 0. Draw subtle radial dot grid background (Stitch .grid-bg)
+    final gridPaint = Paint()
+      ..color = Colors.white.withValues(alpha: 0.04)
+      ..style = PaintingStyle.fill;
+    const double gridSize = 24.0;
+    for (double x = 0; x < size.width; x += gridSize) {
+      for (double y = 0; y < size.height; y += gridSize) {
+        canvas.drawCircle(Offset(x, y), 1.0, gridPaint);
+      }
+    }
+
     // Center the origin and apply pan & zoom transformations
     canvas.save();
     canvas.translate(size.width / 2 + panOffset.dx, size.height / 2 + panOffset.dy);
@@ -39,7 +50,7 @@ class GraphPainter extends CustomPainter {
       final edgeOpacity = isSourceFocused ? edge.opacity : 0.08;
 
       final paint = Paint()
-        ..color = edge.color.withValues(alpha: edgeOpacity)
+        ..color = (edge.type == EdgeType.albumMembership ? AppColors.primary : AppColors.graphCrossLink).withValues(alpha: edgeOpacity * 0.7)
         ..strokeWidth = edge.type == EdgeType.albumMembership ? 1.5 : 1.0
         ..style = PaintingStyle.stroke;
 
@@ -51,32 +62,55 @@ class GraphPainter extends CustomPainter {
       }
     }
 
-    // 2. Draw Nodes (Hubs & Satellites)
+    // 2. Draw Nodes (Stitch Hubs & Satellites)
     for (final node in nodes) {
       final pos = Offset(node.x, node.y);
       final isExpanded = expandedHubId == node.albumId;
       final nodeOpacity = node.opacity;
 
-      // Glow halo for Hub nodes or expanded nodes
-      if (node.category == NodeCategory.hub || isExpanded || node.isFocused) {
-        final glowPaint = Paint()
-          ..color = (isExpanded ? AppColors.primaryLight : node.color).withValues(alpha: 0.25 * nodeOpacity)
-          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 12);
-        canvas.drawCircle(pos, node.radius * 1.5, glowPaint);
+      if (node.category == NodeCategory.hub) {
+        // Outer Emerald Neon Glow (Stitch box-shadow: 0 0 24px rgba(0, 92, 51, 0.8))
+        final outerGlow = Paint()
+          ..color = AppColors.primaryGlow.withValues(alpha: 0.7 * nodeOpacity)
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 18);
+        canvas.drawCircle(pos, node.radius + 8, outerGlow);
+
+        // Dark obsidian surface fill
+        final baseFill = Paint()
+          ..color = AppColors.background.withValues(alpha: nodeOpacity)
+          ..style = PaintingStyle.fill;
+        canvas.drawCircle(pos, node.radius, baseFill);
+
+        // Inner emerald tint fill
+        final innerGlow = Paint()
+          ..color = AppColors.primaryDark.withValues(alpha: 0.35 * nodeOpacity)
+          ..style = PaintingStyle.fill;
+        canvas.drawCircle(pos, node.radius * 0.85, innerGlow);
+
+        // 2px solid emerald ring border
+        final strokePaint = Paint()
+          ..color = AppColors.primary.withValues(alpha: 0.95 * nodeOpacity)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2.2;
+        canvas.drawCircle(pos, node.radius, strokePaint);
+      } else {
+        // Satellite Node (Stitch .node-satellite with 1px emerald border)
+        final satGlow = Paint()
+          ..color = AppColors.primaryDark.withValues(alpha: 0.3 * nodeOpacity)
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6);
+        canvas.drawCircle(pos, node.radius + 2, satGlow);
+
+        final satFill = Paint()
+          ..color = (isExpanded ? AppColors.primaryContainer : AppColors.surfaceContainerHigh).withValues(alpha: nodeOpacity)
+          ..style = PaintingStyle.fill;
+        canvas.drawCircle(pos, node.radius, satFill);
+
+        final satStroke = Paint()
+          ..color = (isExpanded ? AppColors.primary : AppColors.primary.withValues(alpha: 0.6)).withValues(alpha: 0.8 * nodeOpacity)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.2;
+        canvas.drawCircle(pos, node.radius, satStroke);
       }
-
-      // Main Node Body Circle
-      final bodyPaint = Paint()
-        ..color = (isExpanded ? AppColors.primaryLight : node.color).withValues(alpha: nodeOpacity)
-        ..style = PaintingStyle.fill;
-      canvas.drawCircle(pos, node.radius, bodyPaint);
-
-      // Node Border Stroke
-      final strokePaint = Paint()
-        ..color = Colors.white.withValues(alpha: 0.6 * nodeOpacity)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = node.category == NodeCategory.hub ? 2.0 : 1.0;
-      canvas.drawCircle(pos, node.radius, strokePaint);
 
       // Node Text Labels
       if (node.category == NodeCategory.hub || (isExpanded && node.category == NodeCategory.photo)) {

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 enum PhotoFilterPreset {
   none('Original'),
+  emerald('Obsidian Emerald'),
   vivid('Vivid'),
   cyberpunk('Adamantine Violet'),
   monochrome('B&W'),
@@ -31,6 +32,16 @@ class EditService {
     ];
 
     switch (preset) {
+      case PhotoFilterPreset.emerald:
+        // Radiant Obsidian Emerald tone: enrich deep greens & luminous mint highlights
+        matrix = _multiplyMatrices(matrix, [
+          0.9, 0.1, 0.0, 0, -5,
+          0.1, 1.35, 0.1, 0, 20,
+          0.0, 0.1, 0.95, 0, 5,
+          0, 0, 0, 1, 0,
+        ]);
+        break;
+
       case PhotoFilterPreset.vivid:
         matrix = _multiplyMatrices(matrix, [
           1.3, -0.1, -0.1, 0, 0,

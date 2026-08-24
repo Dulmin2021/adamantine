@@ -11,33 +11,43 @@ class AppTheme {
       primaryColor: AppColors.primary,
       colorScheme: const ColorScheme.dark(
         primary: AppColors.primary,
+        primaryContainer: AppColors.primaryContainer,
         secondary: AppColors.secondary,
+        secondaryContainer: AppColors.secondaryContainer,
+        tertiary: AppColors.tertiary,
+        tertiaryContainer: AppColors.tertiaryContainer,
         surface: AppColors.surface,
-        surfaceContainerHighest: AppColors.surfaceVariant,
+        surfaceContainerLow: AppColors.surfaceElevated,
+        surfaceContainer: AppColors.surfaceContainer,
+        surfaceContainerHigh: AppColors.surfaceContainerHigh,
+        surfaceContainerHighest: AppColors.surfaceContainerHighest,
         error: AppColors.error,
-        onPrimary: Colors.white,
-        onSecondary: Colors.white,
+        onPrimary: AppColors.onPrimary,
+        onPrimaryContainer: AppColors.onPrimaryContainer,
+        onSecondary: Color(0xFF303032),
         onSurface: AppColors.textPrimary,
-        onError: Colors.white,
+        onSurfaceVariant: AppColors.textSecondary,
+        onError: Color(0xFF690005),
       ),
-      textTheme: GoogleFonts.interTextTheme(
+      textTheme: GoogleFonts.hankenGroteskTextTheme(
         ThemeData.dark().textTheme.copyWith(
           displayLarge: const TextStyle(
-            color: AppColors.textPrimary,
+            color: AppColors.primary,
             fontSize: 32,
-            fontWeight: FontWeight.bold,
+            fontWeight: FontWeight.w700,
             letterSpacing: -0.5,
           ),
           displayMedium: const TextStyle(
             color: AppColors.textPrimary,
             fontSize: 24,
-            fontWeight: FontWeight.w700,
+            fontWeight: FontWeight.w600,
             letterSpacing: -0.3,
           ),
           titleLarge: const TextStyle(
             color: AppColors.textPrimary,
             fontSize: 20,
             fontWeight: FontWeight.w600,
+            letterSpacing: -0.2,
           ),
           titleMedium: const TextStyle(
             color: AppColors.textPrimary,
@@ -47,14 +57,23 @@ class AppTheme {
           bodyLarge: const TextStyle(
             color: AppColors.textPrimary,
             fontSize: 15,
+            fontWeight: FontWeight.w400,
           ),
           bodyMedium: const TextStyle(
             color: AppColors.textSecondary,
             fontSize: 13,
+            fontWeight: FontWeight.w400,
           ),
           bodySmall: const TextStyle(
             color: AppColors.textMuted,
             fontSize: 11,
+            fontWeight: FontWeight.w500,
+          ),
+          labelLarge: const TextStyle(
+            color: AppColors.textPrimary,
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 0.5,
           ),
         ),
       ),
@@ -65,20 +84,21 @@ class AppTheme {
         scrolledUnderElevation: 0,
         iconTheme: IconThemeData(color: AppColors.textPrimary),
         titleTextStyle: TextStyle(
-          color: AppColors.textPrimary,
-          fontSize: 20,
+          color: AppColors.primary,
+          fontSize: 22,
           fontWeight: FontWeight.w700,
+          letterSpacing: -0.3,
         ),
       ),
       bottomNavigationBarTheme: const BottomNavigationBarThemeData(
         backgroundColor: AppColors.glassSurface,
-        selectedItemColor: AppColors.primaryLight,
+        selectedItemColor: AppColors.primary,
         unselectedItemColor: AppColors.textMuted,
         type: BottomNavigationBarType.fixed,
         elevation: 0,
       ),
       cardTheme: CardThemeData(
-        color: AppColors.surfaceElevated,
+        color: AppColors.surfaceContainer,
         elevation: 0,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
@@ -86,18 +106,18 @@ class AppTheme {
         ),
       ),
       dialogTheme: DialogThemeData(
-        backgroundColor: AppColors.surface,
+        backgroundColor: AppColors.surfaceContainerHigh,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(24),
-          side: const BorderSide(color: AppColors.glassBorder, width: 1),
+          side: const BorderSide(color: AppColors.cardBorder, width: 1),
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: AppColors.surfaceVariant,
+        fillColor: AppColors.surfaceContainerLow,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide.none,
+          borderSide: const BorderSide(color: AppColors.cardBorder, width: 1),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
