@@ -28,11 +28,12 @@ class GraphService {
   GraphData buildGraph({
     required List<MediaItem> allItems,
     required List<Album> allAlbums,
-    required Set<GraphFilter> activeFilters,
+    Set<GraphFilter> activeFilters = const {GraphFilter.byTag},
     String? expandedHubId,
     String? focusedNodeId,
     Map<String, GraphNode>? previousNodeMap,
-    int maxNodes = 2000,
+    bool fromScratch = false,
+    int maxNodes = 250,
   }) {
     final List<GraphNode> nodes = [];
     final List<GraphEdge> edges = [];
@@ -50,8 +51,21 @@ class GraphService {
       final prevHub = previousNodeMap?['hub_${album.id}'];
       final angle = (i / max(1, allAlbums.length)) * 2 * pi;
       final dist = 220.0 + (i % 2) * 50.0;
-      final initialX = prevHub?.x ?? (cos(angle) * dist);
-      final initialY = prevHub?.y ?? (sin(angle) * dist);
+
+      double initialX, initialY, initialVx, initialVy;
+
+      if (fromScratch) {
+        // Clustered seed point at the center with high expansion velocity
+        initialX = cos(angle) * (4.0 + i * 2.0);
+        initialY = sin(angle) * (4.0 + i * 2.0);
+        initialVx = cos(angle) * 180.0;
+        initialVy = sin(angle) * 180.0;
+      } else {
+        initialX = prevHub?.x ?? (cos(angle) * dist);
+        initialY = prevHub?.y ?? (sin(angle) * dist);
+        initialVx = prevHub?.vx ?? 0.0;
+        initialVy = prevHub?.vy ?? 0.0;
+      }
 
       final hubMediaItem = album.coverItem ?? (albumPhotos.isNotEmpty ? albumPhotos.first : null);
 
@@ -67,8 +81,8 @@ class GraphService {
         color: AppColors.primary,
         x: initialX,
         y: initialY,
-        vx: prevHub?.vx ?? 0.0,
-        vy: prevHub?.vy ?? 0.0,
+        vx: initialVx,
+        vy: initialVy,
         isExpanded: isExpanded,
         image: prevHub?.image,
       );
@@ -89,7 +103,12 @@ class GraphService {
           final prevLeaf = previousNodeMap?['photo_${photo.id}'];
           double satX, satY, satVx, satVy;
 
-          if (prevLeaf != null) {
+          if (fromScratch) {
+            satX = initialX + cos(satAngle) * 6.0;
+            satY = initialY + sin(satAngle) * 6.0;
+            satVx = cos(satAngle) * 240.0;
+            satVy = sin(satAngle) * 240.0;
+          } else if (prevLeaf != null) {
             satX = prevLeaf.x;
             satY = prevLeaf.y;
             satVx = prevLeaf.vx;

@@ -262,6 +262,36 @@ class _GraphViewState extends State<GraphView> with SingleTickerProviderStateMix
               ),
             ),
 
+            // Obsidian-Style "Animate from Scratch" Play Button (Bottom Center)
+            Positioned(
+              bottom: 24,
+              left: 0,
+              right: 0,
+              child: Center(
+                child: FloatingActionButton.extended(
+                  heroTag: 'graph_play_anim_fab',
+                  onPressed: () {
+                    graph.playFormationAnimation(
+                      allItems: gallery.allItems,
+                      allAlbums: gallery.albums,
+                    );
+                  },
+                  backgroundColor: AppColors.surfaceContainerHigh.withValues(alpha: 0.95),
+                  elevation: 4,
+                  icon: const Icon(Icons.play_arrow_rounded, color: AppColors.primary, size: 22),
+                  label: const Text(
+                    'Animate Graph',
+                    style: TextStyle(
+                      color: AppColors.primaryLight,
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 0.3,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+
             // Photo Node Preview Card Popup
             if (graph.selectedPreviewNode != null && graph.selectedPreviewNode!.mediaItem != null)
               Positioned(

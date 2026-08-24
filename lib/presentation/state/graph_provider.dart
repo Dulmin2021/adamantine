@@ -120,6 +120,31 @@ class GraphProvider with ChangeNotifier {
     wakeSimulation(0.8);
   }
 
+  void playFormationAnimation({
+    required List<MediaItem> allItems,
+    required List<Album> allAlbums,
+  }) {
+    panOffset = Offset.zero;
+    scale = 1.0;
+    _expandedHubId = null;
+    _selectedPreviewNode = null;
+    _focusedNodeId = null;
+
+    _graphData = _graphService.buildGraph(
+      allItems: allItems,
+      allAlbums: allAlbums,
+      activeFilters: _activeFilters,
+      expandedHubId: null,
+      focusedNodeId: null,
+      previousNodeMap: _graphData?.nodeMap,
+      fromScratch: true,
+    );
+
+    _alpha = 1.0;
+    _loadNodeThumbnails();
+    notifyListeners();
+  }
+
   void closePreview() {
     _selectedPreviewNode = null;
     notifyListeners();
@@ -145,7 +170,17 @@ class GraphProvider with ChangeNotifier {
     if (centerGravity != null) _centerGravity = centerGravity;
     if (driftSpeed != null) _driftSpeed = driftSpeed;
     if (idleDrift != null) _isIdleDriftEnabled = idleDrift;
-    _alpha = 1.0;
+    wakeSimulation(1.0);
+    notifyListeners();
+  }
+
+  void resetPhysicsToDefaults() {
+    _linkDistance = 85.0;
+    _repulsionForce = 1400.0;
+    _centerGravity = 0.04;
+    _driftSpeed = 0.5;
+    _isIdleDriftEnabled = true;
+    wakeSimulation(1.0);
     notifyListeners();
   }
 
@@ -195,7 +230,8 @@ class GraphProvider with ChangeNotifier {
       }
     }
 
-    // 3. Hooke's Law Spring Forces along edges
+    // 3. Hooke's Law Spring Forces along edges (dynamically scaled by _linkDistance)
+    final distanceScale = (_linkDistance / 85.0);
     for (final edge in edges) {
       final source = nodeMap[edge.sourceId];
       final target = nodeMap[edge.targetId];
@@ -206,7 +242,8 @@ class GraphProvider with ChangeNotifier {
       final distSq = dx * dx + dy * dy + 0.001;
       final dist = sqrt(distSq);
 
-      final displacement = dist - edge.length;
+      final targetDistance = edge.length * distanceScale;
+      final displacement = dist - targetDistance;
       final force = displacement * edge.strength * 1.5 * alpha;
 
       final fx = (dx / dist) * force;
