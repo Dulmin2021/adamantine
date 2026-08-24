@@ -40,7 +40,7 @@ class _GraphViewState extends State<GraphView> with SingleTickerProviderStateMix
       _lastElapsed = elapsed;
       _elapsedSeconds = elapsed.inMicroseconds / 1000000.0;
 
-      if (dt > 0 && dt < 0.1) {
+      if (dt > 0 && dt < 0.1 && graph.isSimulating) {
         graph.stepSimulation(dt, _elapsedSeconds);
       }
     });
@@ -140,26 +140,33 @@ class _GraphViewState extends State<GraphView> with SingleTickerProviderStateMix
                   graph.panOffset = Offset.zero;
                   graph.scale = 1.0;
                 });
+                graph.wakeSimulation(0.5);
+              },
+              onScaleStart: (_) {
+                graph.wakeSimulation(0.6);
               },
               onScaleUpdate: (details) {
                 setState(() {
                   graph.scale = (graph.scale * details.scale).clamp(0.4, 2.5);
                   graph.panOffset += details.focalPointDelta;
                 });
+                graph.wakeSimulation(0.3);
               },
               child: Container(
                 color: AppColors.background,
                 width: double.infinity,
                 height: double.infinity,
-                child: CustomPaint(
-                  painter: GraphPainter(
-                    nodes: graph.nodes,
-                    edges: graph.edges,
-                    nodeMap: graph.graphData?.nodeMap ?? {},
-                    scale: graph.scale,
-                    panOffset: graph.panOffset,
-                    expandedHubId: graph.expandedHubId,
-                    focusedNodeId: graph.focusedNodeId,
+                child: RepaintBoundary(
+                  child: CustomPaint(
+                    painter: GraphPainter(
+                      nodes: graph.nodes,
+                      edges: graph.edges,
+                      nodeMap: graph.graphData?.nodeMap ?? {},
+                      scale: graph.scale,
+                      panOffset: graph.panOffset,
+                      expandedHubId: graph.expandedHubId,
+                      focusedNodeId: graph.focusedNodeId,
+                    ),
                   ),
                 ),
               ),

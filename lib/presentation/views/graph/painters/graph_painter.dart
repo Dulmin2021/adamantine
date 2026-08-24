@@ -1,4 +1,6 @@
 import 'dart:math';
+import 'dart:typed_data';
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import '../../../../core/models/graph_node.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -24,16 +26,25 @@ class GraphPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    // 0. Draw subtle radial dot grid background (Stitch .grid-bg)
-    final gridPaint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.04)
-      ..style = PaintingStyle.fill;
+    // 0. Batch draw subtle radial dot grid background (Stitch .grid-bg) in 1 GPU call
     const double gridSize = 24.0;
+    final int xCount = (size.width / gridSize).ceil() + 1;
+    final int yCount = (size.height / gridSize).ceil() + 1;
+    final Float32List points = Float32List(xCount * yCount * 2);
+    int pIdx = 0;
     for (double x = 0; x < size.width; x += gridSize) {
       for (double y = 0; y < size.height; y += gridSize) {
-        canvas.drawCircle(Offset(x, y), 1.0, gridPaint);
+        if (pIdx + 1 < points.length) {
+          points[pIdx++] = x;
+          points[pIdx++] = y;
+        }
       }
     }
+    final gridPaint = Paint()
+      ..color = Colors.white.withValues(alpha: 0.05)
+      ..strokeWidth = 2.0
+      ..strokeCap = StrokeCap.round;
+    canvas.drawRawPoints(ui.PointMode.points, points, gridPaint);
 
     // Center the origin and apply pan & zoom transformations
     canvas.save();

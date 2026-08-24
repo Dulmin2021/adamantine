@@ -22,6 +22,9 @@ class GraphProvider with ChangeNotifier {
   double _driftSpeed = 0.5;
   bool _isIdleDriftEnabled = true;
 
+  // Alpha cooling (forces stop calculating when stable, 0% CPU idle)
+  double _alpha = 1.0;
+
   // Canvas Viewport transformation
   double scale = 1.0;
   Offset panOffset = Offset.zero;
@@ -40,6 +43,11 @@ class GraphProvider with ChangeNotifier {
   double get centerGravity => _centerGravity;
   double get driftSpeed => _driftSpeed;
   bool get isIdleDriftEnabled => _isIdleDriftEnabled;
+  bool get isSimulating => _alpha > 0.001;
+
+  void wakeSimulation([double targetAlpha = 1.0]) {
+    _alpha = max(_alpha, targetAlpha);
+  }
 
   void rebuildGraph({
     required List<MediaItem> allItems,
@@ -52,6 +60,7 @@ class GraphProvider with ChangeNotifier {
       expandedHubId: _expandedHubId,
       focusedNodeId: _focusedNodeId,
     );
+    _alpha = 1.0;
     notifyListeners();
   }
 
@@ -115,45 +124,46 @@ class GraphProvider with ChangeNotifier {
     if (centerGravity != null) _centerGravity = centerGravity;
     if (driftSpeed != null) _driftSpeed = driftSpeed;
     if (idleDrift != null) _isIdleDriftEnabled = idleDrift;
+    _alpha = 1.0;
     notifyListeners();
   }
 
   /// Run one step of the force simulation (called each frame from Ticker)
   void stepSimulation(double dt, double timeSeconds) {
-    if (_graphData == null || _graphData!.nodes.isEmpty) return;
+    if (_graphData == null || _graphData!.nodes.isEmpty || _alpha <= 0.001) return;
 
     final nodes = _graphData!.nodes;
     final edges = _graphData!.edges;
     final nodeMap = _graphData!.nodeMap;
+    final alpha = _alpha;
 
     // 1. Reset forces & apply central gravity + idle drift
     for (int i = 0; i < nodes.length; i++) {
       final node = nodes[i];
-      node.fx = -node.x * _centerGravity;
-      node.fy = -node.y * _centerGravity;
+      node.fx = -node.x * _centerGravity * alpha;
+      node.fy = -node.y * _centerGravity * alpha;
 
-      if (_isIdleDriftEnabled) {
-        // Subtle harmonic breathing motion like Obsidian
+      if (_isIdleDriftEnabled && alpha > 0.05) {
         final driftAngle = timeSeconds * 0.8 + (i * 0.4);
-        node.fx += sin(driftAngle) * 8.0 * _driftSpeed;
-        node.fy += cos(driftAngle) * 8.0 * _driftSpeed;
+        node.fx += sin(driftAngle) * 6.0 * _driftSpeed * alpha;
+        node.fy += cos(driftAngle) * 6.0 * _driftSpeed * alpha;
       }
     }
 
-    // 2. Coulomb Repulsion between all node pairs
+    // 2. Coulomb Repulsion between node pairs (optimized early distance-squared culling)
     for (int i = 0; i < nodes.length; i++) {
+      final a = nodes[i];
       for (int j = i + 1; j < nodes.length; j++) {
-        final a = nodes[i];
         final b = nodes[j];
 
         final dx = b.x - a.x;
         final dy = b.y - a.y;
-        final distSq = dx * dx + dy * dy + 100.0;
+        final distSq = dx * dx + dy * dy + 64.0;
+
+        if (distSq > 160000.0) continue; // Cull > 400px without computing sqrt
+
         final dist = sqrt(distSq);
-
-        if (dist > 500) continue; // Cull distant repulsion
-
-        final force = _repulsionForce / distSq;
+        final force = (_repulsionForce * alpha) / distSq;
         final fx = (dx / dist) * force;
         final fy = (dy / dist) * force;
 
@@ -172,10 +182,11 @@ class GraphProvider with ChangeNotifier {
 
       final dx = target.x - source.x;
       final dy = target.y - source.y;
-      final dist = sqrt(dx * dx + dy * dy) + 0.001;
+      final distSq = dx * dx + dy * dy + 0.001;
+      final dist = sqrt(distSq);
 
       final displacement = dist - edge.length;
-      final force = displacement * edge.strength;
+      final force = displacement * edge.strength * alpha;
 
       final fx = (dx / dist) * force;
       final fy = (dy / dist) * force;
@@ -187,20 +198,26 @@ class GraphProvider with ChangeNotifier {
     }
 
     // 4. Update velocity and position with damping
-    const double damping = 0.85;
+    const double damping = 0.82;
     for (final node in nodes) {
       node.vx = (node.vx + (node.fx / node.mass) * dt) * damping;
       node.vy = (node.vy + (node.fy / node.mass) * dt) * damping;
 
       // Limit max velocity
       final speed = sqrt(node.vx * node.vx + node.vy * node.vy);
-      if (speed > 120) {
-        node.vx = (node.vx / speed) * 120;
-        node.vy = (node.vy / speed) * 120;
+      if (speed > 100) {
+        node.vx = (node.vx / speed) * 100;
+        node.vy = (node.vy / speed) * 100;
       }
 
       node.x += node.vx * dt;
       node.y += node.vy * dt;
+    }
+
+    // 5. Exponential Alpha Cooling (stabilize to 0% idle CPU)
+    _alpha *= 0.978;
+    if (_alpha < 0.001) {
+      _alpha = 0.0;
     }
 
     notifyListeners();
