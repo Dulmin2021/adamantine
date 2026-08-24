@@ -52,6 +52,7 @@ class GraphProvider with ChangeNotifier {
   void rebuildGraph({
     required List<MediaItem> allItems,
     required List<Album> allAlbums,
+    bool resetPositions = false,
   }) {
     _graphData = _graphService.buildGraph(
       allItems: allItems,
@@ -59,6 +60,7 @@ class GraphProvider with ChangeNotifier {
       activeFilters: _activeFilters,
       expandedHubId: _expandedHubId,
       focusedNodeId: _focusedNodeId,
+      previousNodeMap: resetPositions ? null : _graphData?.nodeMap,
     );
     _alpha = 1.0;
     notifyListeners();
@@ -80,11 +82,12 @@ class GraphProvider with ChangeNotifier {
         _expandedHubId = null;
         _selectedPreviewNode = null;
       } else {
-        // Expand (bloom out satellites)
+        // Expand (burst bloom satellites)
         _expandedHubId = node.albumId;
         _selectedPreviewNode = null;
       }
       rebuildGraph(allItems: allItems, allAlbums: allAlbums);
+      wakeSimulation(1.0);
     } else if (node.category == NodeCategory.photo) {
       _selectedPreviewNode = node;
       notifyListeners();
@@ -98,6 +101,7 @@ class GraphProvider with ChangeNotifier {
       _focusedNodeId = nodeId;
     }
     rebuildGraph(allItems: allItems, allAlbums: allAlbums);
+    wakeSimulation(0.8);
   }
 
   void closePreview() {
@@ -109,6 +113,7 @@ class GraphProvider with ChangeNotifier {
     _expandedHubId = null;
     _selectedPreviewNode = null;
     rebuildGraph(allItems: allItems, allAlbums: allAlbums);
+    wakeSimulation(0.8);
   }
 
   // Live Physics Controls
@@ -137,20 +142,20 @@ class GraphProvider with ChangeNotifier {
     final nodeMap = _graphData!.nodeMap;
     final alpha = _alpha;
 
-    // 1. Reset forces & apply central gravity + idle drift
+    // 1. Reset forces & apply central gravity + subtle breathing drift
     for (int i = 0; i < nodes.length; i++) {
       final node = nodes[i];
       node.fx = -node.x * _centerGravity * alpha;
       node.fy = -node.y * _centerGravity * alpha;
 
-      if (_isIdleDriftEnabled && alpha > 0.05) {
-        final driftAngle = timeSeconds * 0.8 + (i * 0.4);
-        node.fx += sin(driftAngle) * 6.0 * _driftSpeed * alpha;
-        node.fy += cos(driftAngle) * 6.0 * _driftSpeed * alpha;
+      if (_isIdleDriftEnabled && alpha > 0.04) {
+        final driftAngle = timeSeconds * 1.2 + (i * 0.5);
+        node.fx += sin(driftAngle) * 8.0 * _driftSpeed * alpha;
+        node.fy += cos(driftAngle) * 8.0 * _driftSpeed * alpha;
       }
     }
 
-    // 2. Coulomb Repulsion between node pairs (optimized early distance-squared culling)
+    // 2. Coulomb Repulsion between node pairs (optimized distance-squared culling)
     for (int i = 0; i < nodes.length; i++) {
       final a = nodes[i];
       for (int j = i + 1; j < nodes.length; j++) {
@@ -160,10 +165,10 @@ class GraphProvider with ChangeNotifier {
         final dy = b.y - a.y;
         final distSq = dx * dx + dy * dy + 64.0;
 
-        if (distSq > 160000.0) continue; // Cull > 400px without computing sqrt
+        if (distSq > 250000.0) continue; // Cull > 500px without computing sqrt
 
         final dist = sqrt(distSq);
-        final force = (_repulsionForce * alpha) / distSq;
+        final force = (_repulsionForce * 1.4 * alpha) / distSq;
         final fx = (dx / dist) * force;
         final fy = (dy / dist) * force;
 
@@ -186,7 +191,7 @@ class GraphProvider with ChangeNotifier {
       final dist = sqrt(distSq);
 
       final displacement = dist - edge.length;
-      final force = displacement * edge.strength * alpha;
+      final force = displacement * edge.strength * 1.5 * alpha;
 
       final fx = (dx / dist) * force;
       final fy = (dy / dist) * force;
@@ -197,25 +202,25 @@ class GraphProvider with ChangeNotifier {
       target.fy -= fy;
     }
 
-    // 4. Update velocity and position with damping
-    const double damping = 0.82;
+    // 4. Update velocity and position with smooth Verlet/Euler integration
+    const double damping = 0.88;
     for (final node in nodes) {
       node.vx = (node.vx + (node.fx / node.mass) * dt) * damping;
       node.vy = (node.vy + (node.fy / node.mass) * dt) * damping;
 
       // Limit max velocity
       final speed = sqrt(node.vx * node.vx + node.vy * node.vy);
-      if (speed > 100) {
-        node.vx = (node.vx / speed) * 100;
-        node.vy = (node.vy / speed) * 100;
+      if (speed > 350.0) {
+        node.vx = (node.vx / speed) * 350.0;
+        node.vy = (node.vy / speed) * 350.0;
       }
 
       node.x += node.vx * dt;
       node.y += node.vy * dt;
     }
 
-    // 5. Exponential Alpha Cooling (stabilize to 0% idle CPU)
-    _alpha *= 0.978;
+    // 5. Exponential Alpha Cooling (gives ~120 frames of smooth spring settling then 0% CPU)
+    _alpha *= 0.985;
     if (_alpha < 0.001) {
       _alpha = 0.0;
     }

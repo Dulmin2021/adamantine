@@ -74,12 +74,12 @@ class EarthProvider with ChangeNotifier {
   void onScaleUpdate(ScaleUpdateDetails details) {
     const double sensitivity = 0.006;
     if (details.focalPointDelta != Offset.zero) {
-      _yaw -= details.focalPointDelta.dx * sensitivity;
-      _pitch += details.focalPointDelta.dy * sensitivity;
+      _yaw += details.focalPointDelta.dx * sensitivity;
+      _pitch -= details.focalPointDelta.dy * sensitivity;
       _pitch = _pitch.clamp(-pi / 2.2, pi / 2.2);
 
-      _velocityYaw = -details.focalPointDelta.dx * sensitivity;
-      _velocityPitch = details.focalPointDelta.dy * sensitivity;
+      _velocityYaw = details.focalPointDelta.dx * sensitivity;
+      _velocityPitch = -details.focalPointDelta.dy * sensitivity;
     }
 
     if (details.scale != 1.0) {

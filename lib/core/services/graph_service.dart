@@ -31,6 +31,7 @@ class GraphService {
     required Set<GraphFilter> activeFilters,
     String? expandedHubId,
     String? focusedNodeId,
+    Map<String, GraphNode>? previousNodeMap,
     int maxNodes = 2000,
   }) {
     final List<GraphNode> nodes = [];
@@ -45,11 +46,12 @@ class GraphService {
       final albumPhotos = activeItems.where((item) => item.albumId == album.id).toList();
       final isExpanded = expandedHubId == album.id;
 
-      // Position hubs in a distributed circle initially
+      // Position hubs: preserve existing position if available, or arrange in circle
+      final prevHub = previousNodeMap?['hub_${album.id}'];
       final angle = (i / max(1, allAlbums.length)) * 2 * pi;
       final dist = 220.0 + (i % 2) * 50.0;
-      final initialX = cos(angle) * dist;
-      final initialY = sin(angle) * dist;
+      final initialX = prevHub?.x ?? (cos(angle) * dist);
+      final initialY = prevHub?.y ?? (sin(angle) * dist);
 
       final hubNode = GraphNode(
         id: 'hub_${album.id}',
@@ -62,6 +64,8 @@ class GraphService {
         color: AppColors.primary,
         x: initialX,
         y: initialY,
+        vx: prevHub?.vx ?? 0.0,
+        vy: prevHub?.vy ?? 0.0,
         isExpanded: isExpanded,
       );
 
@@ -69,7 +73,6 @@ class GraphService {
       nodeMap[hubNode.id] = hubNode;
 
       // 2. Create Satellite Leaf Nodes for Photos
-      // If a specific hub is expanded, show all its photos; otherwise limit or show satellite orbiting dots
       final shouldShowSatellites = expandedHubId == null || expandedHubId == album.id;
       final satelliteLimit = isExpanded ? albumPhotos.length : min(albumPhotos.length, 8);
 
@@ -78,10 +81,23 @@ class GraphService {
           if (nodes.length >= maxNodes) break;
           final photo = albumPhotos[p];
           final satAngle = (p / max(1, satelliteLimit)) * 2 * pi + (p * 0.15);
-          final satDist = isExpanded ? (100.0 + (p % 4) * 35.0) : (45.0 + (p % 2) * 15.0);
 
-          final satX = hubNode.x + cos(satAngle) * satDist;
-          final satY = hubNode.y + sin(satAngle) * satDist;
+          final prevLeaf = previousNodeMap?['photo_${photo.id}'];
+          double satX, satY, satVx, satVy;
+
+          if (prevLeaf != null) {
+            satX = prevLeaf.x;
+            satY = prevLeaf.y;
+            satVx = prevLeaf.vx;
+            satVy = prevLeaf.vy;
+          } else {
+            // Smooth blooming burst outward from the parent hub
+            final satDist = isExpanded ? 24.0 : 16.0;
+            satX = hubNode.x + cos(satAngle) * satDist;
+            satY = hubNode.y + sin(satAngle) * satDist;
+            satVx = cos(satAngle) * (isExpanded ? 180.0 : 40.0);
+            satVy = sin(satAngle) * (isExpanded ? 180.0 : 40.0);
+          }
 
           final leafNode = GraphNode(
             id: 'photo_${photo.id}',
@@ -95,6 +111,8 @@ class GraphService {
             color: isExpanded ? AppColors.primaryLight : AppColors.graphLeaf,
             x: satX,
             y: satY,
+            vx: satVx,
+            vy: satVy,
           );
 
           nodes.add(leafNode);
@@ -106,8 +124,8 @@ class GraphService {
             sourceId: hubNode.id,
             targetId: leafNode.id,
             type: EdgeType.albumMembership,
-            length: isExpanded ? 110.0 : 50.0,
-            strength: isExpanded ? 0.08 : 0.2,
+            length: isExpanded ? 115.0 : 50.0,
+            strength: isExpanded ? 0.12 : 0.25,
             color: AppColors.glassBorder,
             opacity: isExpanded ? 0.8 : 0.4,
           ));
