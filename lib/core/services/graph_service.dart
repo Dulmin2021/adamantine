@@ -92,7 +92,7 @@ class GraphService {
 
       // 2. Create Satellite Leaf Nodes for Photos
       final shouldShowSatellites = expandedHubId == null || expandedHubId == album.id;
-      final satelliteLimit = isExpanded ? albumPhotos.length : min(albumPhotos.length, 8);
+      final satelliteLimit = isExpanded ? min(albumPhotos.length, 36) : min(albumPhotos.length, 6);
 
       if (shouldShowSatellites) {
         for (int p = 0; p < satelliteLimit; p++) {
@@ -104,22 +104,22 @@ class GraphService {
           double satX, satY, satVx, satVy;
 
           if (fromScratch) {
-            satX = initialX + cos(satAngle) * 6.0;
-            satY = initialY + sin(satAngle) * 6.0;
-            satVx = cos(satAngle) * 240.0;
-            satVy = sin(satAngle) * 240.0;
+            satX = initialX + cos(satAngle) * 8.0;
+            satY = initialY + sin(satAngle) * 8.0;
+            satVx = cos(satAngle) * 350.0;
+            satVy = sin(satAngle) * 350.0;
           } else if (prevLeaf != null) {
             satX = prevLeaf.x;
             satY = prevLeaf.y;
             satVx = prevLeaf.vx;
             satVy = prevLeaf.vy;
           } else {
-            // Smooth blooming burst outward from the parent hub
-            final satDist = isExpanded ? 24.0 : 16.0;
+            // Fast blooming burst outward from the parent hub
+            final satDist = isExpanded ? 75.0 : 18.0;
             satX = hubNode.x + cos(satAngle) * satDist;
             satY = hubNode.y + sin(satAngle) * satDist;
-            satVx = cos(satAngle) * (isExpanded ? 180.0 : 40.0);
-            satVy = sin(satAngle) * (isExpanded ? 180.0 : 40.0);
+            satVx = cos(satAngle) * (isExpanded ? 280.0 : 50.0);
+            satVy = sin(satAngle) * (isExpanded ? 280.0 : 50.0);
           }
 
           final leafNode = GraphNode(
@@ -129,7 +129,7 @@ class GraphService {
             albumId: album.id,
             mediaItem: photo,
             photoCount: 1,
-            radius: isExpanded ? 11.0 : 7.0,
+            radius: isExpanded ? 12.0 : 7.0,
             mass: 0.8,
             color: isExpanded ? AppColors.primaryLight : AppColors.graphLeaf,
             x: satX,
@@ -148,10 +148,10 @@ class GraphService {
             sourceId: hubNode.id,
             targetId: leafNode.id,
             type: EdgeType.albumMembership,
-            length: isExpanded ? 115.0 : 50.0,
-            strength: isExpanded ? 0.12 : 0.25,
+            length: isExpanded ? 85.0 : 42.0,
+            strength: isExpanded ? 0.28 : 0.4,
             color: AppColors.glassBorder,
-            opacity: isExpanded ? 0.8 : 0.4,
+            opacity: isExpanded ? 0.85 : 0.45,
           ));
         }
       }

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import '../../core/models/graph_node.dart';
@@ -25,6 +26,7 @@ class GraphProvider with ChangeNotifier {
 
   // Alpha cooling (forces stop calculating when stable, 0% CPU idle)
   double _alpha = 1.0;
+  Timer? _thumbnailDebounce;
 
   // Canvas Viewport transformation
   double scale = 1.0;
@@ -75,7 +77,10 @@ class GraphProvider with ChangeNotifier {
         CanvasImageLoader.loadThumbnail(node.mediaItem!).then((img) {
           if (img != null) {
             node.image = img;
-            notifyListeners();
+            _thumbnailDebounce?.cancel();
+            _thumbnailDebounce = Timer(const Duration(milliseconds: 50), () {
+              notifyListeners();
+            });
           }
         });
       }
@@ -193,13 +198,17 @@ class GraphProvider with ChangeNotifier {
     final nodeMap = _graphData!.nodeMap;
     final alpha = _alpha;
 
+    // Simulation speed factor for fast, snappy, responsive spring motion like Obsidian
+    const double speedFactor = 2.4;
+    final subDt = (dt * speedFactor).clamp(0.008, 0.045);
+
     // 1. Reset forces & apply central gravity + subtle breathing drift
     for (int i = 0; i < nodes.length; i++) {
       final node = nodes[i];
-      node.fx = -node.x * _centerGravity * alpha;
-      node.fy = -node.y * _centerGravity * alpha;
+      node.fx = -node.x * _centerGravity * 1.5 * alpha;
+      node.fy = -node.y * _centerGravity * 1.5 * alpha;
 
-      if (_isIdleDriftEnabled && alpha > 0.04) {
+      if (_isIdleDriftEnabled && alpha > 0.08) {
         final driftAngle = timeSeconds * 1.2 + (i * 0.5);
         node.fx += sin(driftAngle) * 8.0 * _driftSpeed * alpha;
         node.fy += cos(driftAngle) * 8.0 * _driftSpeed * alpha;
@@ -214,12 +223,12 @@ class GraphProvider with ChangeNotifier {
 
         final dx = b.x - a.x;
         final dy = b.y - a.y;
-        final distSq = dx * dx + dy * dy + 64.0;
+        final distSq = dx * dx + dy * dy + 36.0;
 
-        if (distSq > 250000.0) continue; // Cull > 500px without computing sqrt
+        if (distSq > 160000.0) continue; // Cull > 400px without computing sqrt
 
         final dist = sqrt(distSq);
-        final force = (_repulsionForce * 1.4 * alpha) / distSq;
+        final force = (_repulsionForce * 2.4 * alpha) / distSq;
         final fx = (dx / dist) * force;
         final fy = (dy / dist) * force;
 
@@ -244,7 +253,7 @@ class GraphProvider with ChangeNotifier {
 
       final targetDistance = edge.length * distanceScale;
       final displacement = dist - targetDistance;
-      final force = displacement * edge.strength * 1.5 * alpha;
+      final force = displacement * edge.strength * 3.2 * alpha;
 
       final fx = (dx / dist) * force;
       final fy = (dy / dist) * force;
@@ -256,7 +265,7 @@ class GraphProvider with ChangeNotifier {
     }
 
     // 4. Update velocity and position with smooth Verlet/Euler integration
-    const double damping = 0.88;
+    const double damping = 0.85;
     for (final node in nodes) {
       if (node.isPinned) {
         node.vx = 0;
@@ -264,22 +273,22 @@ class GraphProvider with ChangeNotifier {
         continue;
       }
 
-      node.vx = (node.vx + (node.fx / node.mass) * dt) * damping;
-      node.vy = (node.vy + (node.fy / node.mass) * dt) * damping;
+      node.vx = (node.vx + (node.fx / node.mass) * subDt) * damping;
+      node.vy = (node.vy + (node.fy / node.mass) * subDt) * damping;
 
       // Limit max velocity
       final speed = sqrt(node.vx * node.vx + node.vy * node.vy);
-      if (speed > 350.0) {
-        node.vx = (node.vx / speed) * 350.0;
-        node.vy = (node.vy / speed) * 350.0;
+      if (speed > 600.0) {
+        node.vx = (node.vx / speed) * 600.0;
+        node.vy = (node.vy / speed) * 600.0;
       }
 
-      node.x += node.vx * dt;
-      node.y += node.vy * dt;
+      node.x += node.vx * subDt;
+      node.y += node.vy * subDt;
     }
 
-    // 5. Exponential Alpha Cooling (gives ~120 frames of smooth spring settling then 0% CPU)
-    _alpha *= 0.985;
+    // 5. Exponential Alpha Cooling (settles smoothly in ~50-60 frames)
+    _alpha *= 0.965;
     if (_alpha < 0.001) {
       _alpha = 0.0;
     }
